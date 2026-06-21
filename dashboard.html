@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monitor de Mercado</title>
+<style>
+  :root{
+    --bg:#0a0e0f; --panel:#0f1517; --panel2:#121a1c; --line:#1c2628;
+    --ink:#e6efe9; --ink-dim:#7d8f86; --ink-faint:#4a5852;
+    --green:#46d98a; --green-dim:#2a7d54; --green-glow:rgba(70,217,138,.12);
+    --red:#ff6b6b; --red-dim:#7d2a2a; --amber:#e0a73a; --blue:#5b9dd9;
+    --radius:14px; --mono:'SF Mono',ui-monospace,'JetBrains Mono',Menlo,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);
+    font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(ellipse 80% 50% at 50% -10%,var(--green-glow),transparent);}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+  ::-webkit-scrollbar-track{background:transparent}
+
+  /* header */
+  header{display:flex;align-items:center;gap:18px;padding:18px 26px;
+    border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50;
+    background:rgba(10,14,15,.85);backdrop-filter:blur(12px)}
+  .logo{font-family:var(--mono);font-weight:700;font-size:16px;letter-spacing:.5px}
+  .logo .accent{color:var(--green)}
+  .sub{color:var(--ink-dim);font-size:13px}
+  .live{margin-left:auto;display:flex;align-items:center;gap:8px;font-family:var(--mono);
+    font-size:12px;color:var(--green);border:1px solid var(--green-dim);
+    padding:6px 12px;border-radius:20px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--green);
+    box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+  @keyframes pulse{50%{opacity:.4}}
+  .gen{color:var(--ink-faint);font-size:12px;font-family:var(--mono)}
+
+  /* layout */
+  .wrap{padding:22px;max-width:1600px;margin:0 auto}
+  .grid{display:grid;gap:18px}
+  .grid.two{grid-template-columns:1fr 1fr}
+  @media(max-width:1100px){.grid.two{grid-template-columns:1fr}}
+
+  /* stat cards */
+  .stats{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:18px}
+  @media(max-width:1100px){.stats{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px 18px;cursor:pointer;transition:.15s;position:relative;overflow:hidden}
+  .stat:hover{border-color:var(--green-dim);transform:translateY(-1px)}
+  .stat .num{font-family:var(--mono);font-size:30px;font-weight:600;line-height:1}
+  .stat .lbl{color:var(--ink);font-size:12px;margin-top:8px;font-weight:500}
+  .stat .hint{color:var(--ink-faint);font-size:11px;margin-top:2px}
+  .stat.on{border-color:var(--green);background:var(--green-glow)}
+
+  /* panel */
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:20px;overflow:hidden}
+  .phead{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}
+  .phead h2{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px}
+  .phead h2::before{content:"";width:3px;height:14px;background:var(--green);border-radius:2px}
+  .pdesc{color:var(--ink-dim);font-size:12px;margin-bottom:16px}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+  select,.seg{background:var(--panel2);color:var(--ink);border:1px solid var(--line);
+    border-radius:8px;padding:7px 11px;font-size:12px;font-family:var(--sans);cursor:pointer}
+  label.ctl{color:var(--ink-dim);font-size:12px;display:flex;align-items:center;gap:6px}
+
+  /* tables */
+  .tbl{width:100%;border-collapse:collapse;font-size:13px}
+  .tbl th{text-align:right;color:var(--ink-faint);font-weight:500;font-size:11px;
+    text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;border-bottom:1px solid var(--line);
+    position:sticky;top:0;background:var(--panel);cursor:pointer;user-select:none}
+  .tbl th:first-child,.tbl td:first-child{text-align:left}
+  .tbl th.sortable:hover{color:var(--green)}
+  .tbl td{padding:9px 10px;text-align:right;border-bottom:1px solid rgba(28,38,40,.5);
+    font-family:var(--mono);white-space:nowrap}
+  .tbl tr:hover td{background:var(--panel2)}
+  .tk{font-weight:700;font-family:var(--mono);font-size:13px;letter-spacing:.3px}
+  .pill{display:inline-block;padding:3px 9px;border-radius:20px;font-size:12px;
+    font-family:var(--mono);font-weight:600}
+  .pill.green{background:rgba(70,217,138,.12);color:var(--green);border:1px solid var(--green-dim)}
+  .pill.amber{background:rgba(224,167,58,.1);color:var(--amber);border:1px solid rgba(224,167,58,.3)}
+  .pill.red{background:rgba(255,107,107,.1);color:var(--red);border:1px solid var(--red-dim)}
+  .pill.dim{background:var(--panel2);color:var(--ink-dim);border:1px solid var(--line)}
+  .pos{color:var(--green)} .neg{color:var(--red)} .neu{color:var(--ink-dim)}
+  .mcap{font-size:11px;color:var(--ink-dim);padding:2px 8px;border:1px solid var(--line);
+    border-radius:6px;font-family:var(--mono)}
+  .scroll{max-height:560px;overflow:auto}
+  .check{width:9px;height:9px;border-radius:50%;display:inline-block}
+  .check.y{background:var(--green);box-shadow:0 0 6px var(--green-glow)}
+  .check.n{background:var(--red-dim)}
+
+  /* sparkline */
+  .spark{height:28px;width:90px}
+
+  /* scatter */
+  .scatter-wrap{position:relative}
+  svg.scatter{width:100%;height:480px;display:block}
+  .quad-lbl{fill:var(--ink-faint);font-size:11px;font-family:var(--mono)}
+  .axis-lbl{fill:var(--ink-dim);font-size:11px;font-family:var(--mono)}
+
+  /* bars */
+  .barrow{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+  .barrow .bsym{width:54px;font-family:var(--mono);font-size:12px;font-weight:600}
+  .bar{height:18px;border-radius:4px;min-width:2px;transition:width .4s}
+  .barrow .bval{font-family:var(--mono);font-size:11px;color:var(--ink-dim);width:48px}
+
+  /* sector cards */
+  .sectors{display:flex;flex-direction:column;gap:18px}
+  .sector-block .stitle{display:flex;align-items:center;gap:10px;margin-bottom:10px;
+    font-family:var(--mono);font-size:13px;font-weight:600}
+  .sector-block .srs{color:var(--ink-dim);font-size:11px;border:1px solid var(--line);
+    padding:2px 8px;border-radius:6px}
+  .scards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  @media(max-width:700px){.scards{grid-template-columns:1fr}}
+  .scard{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .scard.vol{border-color:rgba(224,167,58,.4)}
+  .scard .sc-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+  .scard .sc-tk{font-family:var(--mono);font-weight:700;font-size:14px}
+  .scard .sc-row{display:flex;justify-content:space-between;font-size:11px;
+    font-family:var(--mono);padding:2px 0;color:var(--ink-dim)}
+  .scard .sc-row b{color:var(--ink);font-weight:500}
+
+  /* winners/losers */
+  .wl{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .wl h3{font-size:12px;color:var(--ink-dim);margin-bottom:10px;display:flex;align-items:center;gap:7px}
+  .wl .li{display:flex;align-items:center;gap:10px;padding:6px 0;font-family:var(--mono);font-size:13px}
+  .wl .li .rk{color:var(--ink-faint);width:16px}
+  .wl .li .nm{flex:1;font-weight:600}
+
+  .empty{text-align:center;padding:40px;color:var(--ink-faint);font-size:13px}
+  .mock-banner{background:rgba(224,167,58,.12);border:1px solid rgba(224,167,58,.3);
+    color:var(--amber);padding:10px 16px;border-radius:10px;font-size:12px;
+    margin-bottom:18px;font-family:var(--mono)}
+  .tabs{display:flex;gap:4px;margin-bottom:18px;flex-wrap:wrap}
+  .tab{padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;color:var(--ink-dim);
+    border:1px solid transparent}
+  .tab.on{background:var(--panel);border-color:var(--line);color:var(--green)}
+  .tab:hover{color:var(--ink)}
+  section.view{display:none} section.view.on{display:block}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><span class="accent">▌</span>Monitor<span class="accent"> de Mercado</span></div>
+  <div class="sub">Scanner técnico · ~340 tickers US</div>
+  <div class="live"><span class="dot"></span>EOD</div>
+  <div class="gen" id="gen">—</div>
+</header>
+
+<div class="wrap">
+  <div id="mockBanner"></div>
+
+  <!-- stat cards -->
+  <div class="stats" id="stats"></div>
+
+  <!-- tabs -->
+  <div class="tabs" id="tabs">
+    <div class="tab on" data-v="scan">Scanner & Score</div>
+    <div class="tab" data-v="sectors">Sectores</div>
+    <div class="tab" data-v="resurg">Re-surgimiento</div>
+    <div class="tab" data-v="trend">Tendencia & Volumen</div>
+    <div class="tab" data-v="board">Cartelera</div>
+    <div class="tab" data-v="compare">Comparador</div>
+  </div>
+
+  <!-- VIEW: scanner + warren score -->
+  <section class="view on" data-v="scan">
+    <div class="grid two">
+      <div class="panel">
+        <div class="phead"><h2>Scanner de calidad</h2></div>
+        <div class="pdesc">Sobre medias + RS alto + baja volatilidad. Ordená por cualquier columna.</div>
+        <div class="controls">
+          <label class="ctl">RS mín <select id="f-rs"><option value="0">0</option><option value="60">60</option><option value="70">70</option><option value="80">80</option><option value="90">90</option></select></label>
+          <label class="ctl">Vol rel máx <select id="f-vol"><option value="99">—</option><option value="1">1.0x</option><option value="0.8">0.8x</option></select></label>
+          <label class="ctl">Sector <select id="f-sec"></select></label>
+          <label class="ctl"><input type="checkbox" id="f-quality"> Solo candidatos calidad</label>
+        </div>
+        <div class="scroll"><table class="tbl" id="scanTbl"></table></div>
+      </div>
+      <div class="panel">
+        <div class="phead"><h2>Warren Score</h2></div>
+        <div class="pdesc">Score compuesto 0–100. Combina RS, posición vs medias y volatilidad.</div>
+        <div class="controls">
+          <label class="ctl">Mín criterios <select id="ws-crit"><option value="0">Todos</option><option value="2">2+</option><option value="3">3+</option><option value="4">4</option></select></label>
+          <label class="ctl">Mostrar <select id="ws-top"><option value="20">Top 20</option><option value="50">Top 50</option><option value="999">Todos</option></select></label>
+        </div>
+        <div class="scroll"><table class="tbl" id="wsTbl"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VIEW: sectors -->
+  <section class="view" data-v="sectors">
+    <div class="panel">
+      <div class="phead"><h2>Semáforo por sector — Top 3</h2></div>
+      <div class="pdesc">Top 3 por RS Score en cada sector · borde ámbar = volumen inusual</div>
+      <div class="sectors" id="sectors"></div>
+    </div>
+  </section>
+
+  <!-- VIEW: resurgimiento -->
+  <section class="view" data-v="resurg">
+    <div class="panel">
+      <div class="phead"><h2>Mapa de Re-surgimiento</h2></div>
+      <div class="pdesc">RS Score vs RS de referencia — tamaño = volumen relativo · color = momentum</div>
+      <div class="scatter-wrap"><svg class="scatter" id="scatter"></svg></div>
+    </div>
+  </section>
+
+  <!-- VIEW: trend + volume -->
+  <section class="view" data-v="trend">
+    <div class="grid two">
+      <div class="panel">
+        <div class="phead"><h2>Tendencia RS Score</h2></div>
+        <div class="pdesc">Tickers con mejor fuerza relativa · sparkline de precio (30 ruedas)</div>
+        <div class="scroll"><table class="tbl" id="trendTbl"></table></div>
+      </div>
+      <div class="panel">
+        <div class="phead"><h2>Volumen inusual hoy</h2></div>
+        <div class="pdesc">Desvío del volumen de hoy vs promedio de 5 ruedas</div>
+        <div id="volBars"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VIEW: board -->
+  <section class="view" data-v="board">
+    <div class="grid two">
+      <div class="panel">
+        <div class="phead"><h2>Cartelera del día</h2></div>
+        <div class="pdesc">Principales movimientos del día</div>
+        <div class="wl" id="winlose"></div>
+      </div>
+      <div class="panel">
+        <div class="phead"><h2>Extremos RSI</h2></div>
+        <div class="pdesc">Sobrecomprados (RSI alto) y sobrevendidos (RSI bajo)</div>
+        <div class="wl" id="rsiext"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VIEW: compare -->
+  <section class="view" data-v="compare">
+    <div class="panel">
+      <div class="phead"><h2>Comparador de activos</h2></div>
+      <div class="pdesc">Elegí dos tickers para compararlos métrica por métrica</div>
+      <div class="controls">
+        <label class="ctl">Activo A <select id="cmp-a"></select></label>
+        <label class="ctl">Activo B <select id="cmp-b"></select></label>
+      </div>
+      <table class="tbl" id="cmpTbl" style="max-width:600px"></table>
+    </div>
+  </section>
+</div>
+
+<script>
+const QUALITY_SECTORS_VOL = 0.8;
+let DATA = null, ALL = [];
+
+const fmtCap = c => c>=1e12?(c/1e12).toFixed(1)+'T':c>=1e9?(c/1e9).toFixed(0)+'B':c>=1e6?(c/1e6).toFixed(0)+'M':c;
+const mcapTier = c => c>=2e11?'Mega':c>=1e10?'Large':c>=2e9?'Mid':'Small';
+const sign = v => v>0?'+':'';
+const cls = v => v>0?'pos':v<0?'neg':'neu';
+const pillRS = v => v>=70?'green':v>=50?'amber':'dim';
+const esc = s => String(s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+
+async function load(){
+  try{
+    const r = await fetch('data.json?'+Date.now());
+    DATA = await r.json();
+  }catch(e){
+    document.getElementById('mockBanner').innerHTML =
+      '<div class="empty">No encontré <b>data.json</b>. Corré <code>python3 fetch_data.py</code> (o <code>--mock</code>) y recargá.</div>';
+    return;
+  }
+  ALL = DATA.tickers;
+  document.getElementById('gen').textContent = 'Actualizado: '+new Date(DATA.generated).toLocaleString('es');
+  if(DATA.mock){
+    document.getElementById('mockBanner').innerHTML =
+      '<div class="mock-banner">⚠ Datos de DEMOSTRACIÓN (sintéticos). Corré <b>python3 fetch_data.py</b> con tu API key para datos reales.</div>';
+  }
+  initFilters(); renderAll();
+}
+
+function initFilters(){
+  const secs = [...new Set(ALL.map(t=>t.sector))].sort();
+  const secSel = document.getElementById('f-sec');
+  secSel.innerHTML = '<option value="">Todos</option>'+secs.map(s=>`<option>${esc(s)}</option>`).join('');
+  const opts = ALL.slice().sort((a,b)=>a.symbol<b.symbol?-1:1).map(t=>`<option value="${t.symbol}">${t.symbol}</option>`).join('');
+  document.getElementById('cmp-a').innerHTML = opts;
+  document.getElementById('cmp-b').innerHTML = opts;
+  document.getElementById('cmp-a').value = ALL[0].symbol;
+  document.getElementById('cmp-b').value = ALL[1].symbol;
+  // listeners
+  ['f-rs','f-vol','f-sec','f-quality'].forEach(id=>document.getElementById(id).addEventListener('input',renderScan));
+  ['ws-crit','ws-top'].forEach(id=>document.getElementById(id).addEventListener('input',renderWS));
+  ['cmp-a','cmp-b'].forEach(id=>document.getElementById(id).addEventListener('input',renderCompare));
+}
+
+/* ---------- stat cards ---------- */
+function renderStats(){
+  const onEma = ALL.filter(t=>t.vsEma200>0).length;
+  const rsHi = ALL.filter(t=>t.rsScore>70).length;
+  const onSma = ALL.filter(t=>t.vsSma50>0).length;
+  const volUn = ALL.filter(t=>t.volRel>1.5).length;
+  const quality = ALL.filter(t=>t.rsScore>60 && t.relVol<1 && t.vsEma200>0 && t.vsSma50>0).length;
+  const cards = [
+    {n:ALL.length, l:'Tickers activos', h:'universo escaneado', c:'var(--blue)'},
+    {n:onEma, l:'Sobre EMA200', h:'tendencia alcista', c:'var(--green)'},
+    {n:rsHi, l:'RS Score > 70', h:'fuerza relativa alta', c:'var(--green)'},
+    {n:onSma, l:'Sobre SMA50', h:'precio sobre media 50', c:'var(--green)'},
+    {n:volUn, l:'Vol inusual hoy', h:'+50% sobre promedio', c:'var(--amber)'},
+    {n:quality, l:'Candidatos calidad', h:'RS>60 + vol baja + medias', c:'var(--green)'},
+  ];
+  document.getElementById('stats').innerHTML = cards.map(c=>
+    `<div class="stat"><div class="num" style="color:${c.c}">${c.n}</div>
+     <div class="lbl">${c.l}</div><div class="hint">${c.h}</div></div>`).join('');
+}
+
+/* ---------- scanner table ---------- */
+let scanSort = {key:'warrenScore', dir:-1};
+function renderScan(){
+  const rsMin = +document.getElementById('f-rs').value;
+  const volMax = +document.getElementById('f-vol').value;
+  const sec = document.getElementById('f-sec').value;
+  const onlyQ = document.getElementById('f-quality').checked;
+  let rows = ALL.filter(t=>t.rsScore>=rsMin && (t.volRel??99)<=volMax && (!sec||t.sector===sec));
+  if(onlyQ) rows = rows.filter(t=>t.rsScore>60 && t.relVol<1 && t.vsEma200>0 && t.vsSma50>0);
+  rows.sort((a,b)=>((a[scanSort.key]??-1e9)-(b[scanSort.key]??-1e9))*scanSort.dir);
+  const cols = [
+    ['symbol','Ticker'],['price','Precio'],['changePct','Var%'],['sector','Sector'],
+    ['mktCap','MCap'],['rsScore','RS'],['rsi','RSI'],['volRel','Vol Rel'],
+    ['vsEma200','vs EMA200'],['vsSma50','vs SMA50']
+  ];
+  const head = '<thead><tr>'+cols.map(([k,l])=>`<th class="sortable" data-k="${k}">${l}</th>`).join('')+'</tr></thead>';
+  const body = '<tbody>'+rows.map(t=>`<tr>
+    <td><span class="tk">${t.symbol}</span></td>
+    <td>$${t.price}</td>
+    <td class="${cls(t.changePct)}">${sign(t.changePct)}${t.changePct}%</td>
+    <td style="text-align:left;color:var(--ink-dim);font-size:11px">${esc(t.sector)}</td>
+    <td><span class="mcap">${mcapTier(t.mktCap)}</span></td>
+    <td><span class="pill ${pillRS(t.rsScore)}">${t.rsScore}</span></td>
+    <td>${t.rsi}</td>
+    <td><span class="pill ${t.volRel>1.5?'amber':'dim'}">${t.volRel}x</span></td>
+    <td class="${cls(t.vsEma200)}">${sign(t.vsEma200)}${t.vsEma200}%</td>
+    <td class="${cls(t.vsSma50)}">${sign(t.vsSma50)}${t.vsSma50}%</td></tr>`).join('')+'</tbody>';
+  const tbl = document.getElementById('scanTbl');
+  tbl.innerHTML = head+(rows.length?body:'<tbody><tr><td colspan="10"><div class="empty">Ningún ticker cumple los filtros.</div></td></tr></tbody>');
+  tbl.querySelectorAll('th.sortable').forEach(th=>th.onclick=()=>{
+    const k=th.dataset.k; scanSort.dir = scanSort.key===k? -scanSort.dir : -1; scanSort.key=k; renderScan();
+  });
+}
+
+/* ---------- warren score table ---------- */
+function critCount(t){return Object.values(t.criteria).filter(Boolean).length;}
+function renderWS(){
+  const minC = +document.getElementById('ws-crit').value;
+  const top = +document.getElementById('ws-top').value;
+  let rows = ALL.filter(t=>critCount(t)>=minC).slice(0,top);
+  const head = `<thead><tr><th>Ticker</th><th>Score</th><th>RS</th><th>Vol Rel</th>
+    <th>Vol 5/40</th><th>EMA200</th><th>SMA50</th><th>+25%mín</th><th>Vol&lt;0.8</th></tr></thead>`;
+  const body = '<tbody>'+rows.map(t=>{
+    const c=t.criteria;
+    const ck=v=>`<span class="check ${v?'y':'n'}"></span>`;
+    return `<tr>
+      <td><span class="tk">${t.symbol}</span></td>
+      <td><span class="pill green">${t.warrenScore}</span></td>
+      <td><span class="pill ${pillRS(t.rsScore)}">${t.rsScore}</span></td>
+      <td><span class="${t.volRel>1.2?'neg':'pos'}">${t.volRel}x</span></td>
+      <td><span class="${(t.vol5_40??1)<1?'pos':'neu'}">${t.vol5_40??'—'}x</span></td>
+      <td>${ck(c.ema200)}</td><td>${ck(c.sma50)}</td><td>${ck(c.min25)}</td><td>${ck(c.lowvol)}</td></tr>`;
+  }).join('')+'</tbody>';
+  document.getElementById('wsTbl').innerHTML = head+body;
+}
+
+/* ---------- sectors ---------- */
+function renderSectors(){
+  const bySec = {};
+  ALL.forEach(t=>{(bySec[t.sector]=bySec[t.sector]||[]).push(t)});
+  const blocks = Object.entries(bySec).map(([sec,arr])=>{
+    const best = Math.max(...arr.map(t=>t.rsScore));
+    return [sec,arr,best];
+  }).sort((a,b)=>b[2]-a[2]);
+  document.getElementById('sectors').innerHTML = blocks.map(([sec,arr,best])=>{
+    const top3 = arr.slice().sort((a,b)=>b.rsScore-a.rsScore).slice(0,3);
+    const cards = top3.map(t=>{
+      const unusual = t.volRel>1.5;
+      const row=(l,v,good)=>`<div class="sc-row"><span>${l}</span><b class="${good}">${v}</b></div>`;
+      return `<div class="scard ${unusual?'vol':''}">
+        <div class="sc-h"><span class="sc-tk">${t.symbol}</span>
+          ${unusual?'<span class="pill amber" style="font-size:10px">VOL</span>':`<span class="${cls(t.changePct)}" style="font-size:12px">${sign(t.changePct)}${t.changePct}%</span>`}</div>
+        ${row('EMA200', sign(t.vsEma200)+t.vsEma200+'%', cls(t.vsEma200))}
+        ${row('SMA50', sign(t.vsSma50)+t.vsSma50+'%', cls(t.vsSma50))}
+        ${row('RSI 14', t.rsi, t.rsi>70?'neg':t.rsi<30?'pos':'neu')}
+        ${row('RS Score', t.rsScore, pillRS(t.rsScore)==='green'?'pos':'neu')}
+        ${row('Vol Rel', t.volRel+'x', t.volRel>1.5?'neg':'pos')}</div>`;
+    }).join('');
+    return `<div class="sector-block">
+      <div class="stitle">${esc(sec).toUpperCase()} <span class="srs">RS ${best.toFixed(1)}</span></div>
+      <div class="scards">${cards}</div></div>`;
+  }).join('');
+}
+
+/* ---------- scatter (re-surgimiento) ---------- */
+function renderScatter(){
+  const svg = document.getElementById('scatter');
+  const W=svg.clientWidth||900, H=480, pad=44;
+  const x = v => pad + (v/100)*(W-pad*2);
+  const y = v => H-pad - (v/100)*(H-pad*2);
+  let s = `<defs></defs>`;
+  // grid
+  for(let i=0;i<=100;i+=20){
+    s+=`<line x1="${x(i)}" y1="${pad}" x2="${x(i)}" y2="${H-pad}" stroke="var(--line)" stroke-width="1" opacity=".4"/>`;
+    s+=`<line x1="${pad}" y1="${y(i)}" x2="${W-pad}" y2="${y(i)}" stroke="var(--line)" stroke-width="1" opacity=".4"/>`;
+    s+=`<text class="axis-lbl" x="${x(i)}" y="${H-pad+16}" text-anchor="middle">${i}</text>`;
+    s+=`<text class="axis-lbl" x="${pad-10}" y="${y(i)+4}" text-anchor="end">${i}</text>`;
+  }
+  // diagonal
+  s+=`<line x1="${x(0)}" y1="${y(0)}" x2="${x(100)}" y2="${y(100)}" stroke="var(--ink-faint)" stroke-dasharray="4 4" opacity=".5"/>`;
+  s+=`<text class="quad-lbl" x="${x(8)}" y="${y(95)}">RE-SURGIENDO ↑</text>`;
+  s+=`<text class="quad-lbl" x="${x(72)}" y="${y(95)}">CONSOLIDADOS</text>`;
+  s+=`<text class="quad-lbl" x="${x(60)}" y="${y(6)}">PERDIENDO ↓</text>`;
+  // points: x = rsScore proxy "anterior" (usamos rsScore - changePct*algo as pseudo prev), y = rsScore
+  ALL.forEach(t=>{
+    const prev = Math.max(0,Math.min(100, t.rsScore - t.changePct)); // proxy
+    const up = t.rsScore>prev+1, down=t.rsScore<prev-1;
+    const col = up?'var(--green)':down?'var(--red)':'var(--ink-faint)';
+    const r = 4 + Math.min(14,(t.volRel||1)*4);
+    s+=`<circle cx="${x(prev)}" cy="${y(t.rsScore)}" r="${r}" fill="${col}" fill-opacity=".28" stroke="${col}" stroke-opacity=".6"><title>${t.symbol} · RS ${t.rsScore} · vol ${t.volRel}x</title></circle>`;
+  });
+  s+=`<text class="axis-lbl" x="${W/2}" y="${H-6}" text-anchor="middle">RS Score (referencia)</text>`;
+  svg.innerHTML = s;
+}
+
+/* ---------- trend table + sparklines ---------- */
+function sparkSVG(arr,w=90,h=28){
+  if(!arr||arr.length<2) return '';
+  const mn=Math.min(...arr),mx=Math.max(...arr),rng=mx-mn||1;
+  const pts=arr.map((v,i)=>`${(i/(arr.length-1))*w},${h-((v-mn)/rng)*h}`).join(' ');
+  const up=arr[arr.length-1]>=arr[0];
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="${up?'var(--green)':'var(--red)'}" stroke-width="1.5"/></svg>`;
+}
+function renderTrend(){
+  const rows = ALL.slice().sort((a,b)=>b.rsScore-a.rsScore).slice(0,25);
+  const head=`<thead><tr><th>Ticker</th><th>Tendencia</th><th>RS Score</th><th>RSI</th><th>vs SMA50</th></tr></thead>`;
+  const body='<tbody>'+rows.map(t=>`<tr>
+    <td><span class="tk">${t.symbol}</span><div style="font-size:10px;color:var(--ink-faint)">${esc(t.sector)}</div></td>
+    <td style="text-align:left">${sparkSVG(t.spark)}</td>
+    <td><span class="pill ${pillRS(t.rsScore)}">${t.rsScore}</span></td>
+    <td>${t.rsi}</td>
+    <td class="${cls(t.vsSma50)}">${sign(t.vsSma50)}${t.vsSma50}%</td></tr>`).join('')+'</tbody>';
+  document.getElementById('trendTbl').innerHTML=head+body;
+}
+
+/* ---------- volume bars ---------- */
+function renderVolBars(){
+  const rows = ALL.filter(t=>t.volRel).slice().sort((a,b)=>b.volRel-a.volRel).slice(0,20);
+  const mx = Math.max(...rows.map(t=>t.volRel));
+  document.getElementById('volBars').innerHTML = rows.map(t=>{
+    const w=(t.volRel/mx)*100, col=t.volRel>1.5?'var(--red)':'var(--amber)';
+    return `<div class="barrow"><span class="bsym">${t.symbol}</span>
+      <div class="bar" style="width:${w}%;background:${col};opacity:.7"></div>
+      <span class="bval">${t.volRel}x</span></div>`;
+  }).join('');
+}
+
+/* ---------- board: winners/losers + rsi extremes ---------- */
+function renderBoard(){
+  const byChg = ALL.slice().sort((a,b)=>b.changePct-a.changePct);
+  const win=byChg.slice(0,5), lose=byChg.slice(-5).reverse();
+  const li=(t,i,good)=>`<div class="li"><span class="rk">${i+1}</span><span class="nm">${t.symbol}</span>
+    <span class="${good}">${sign(t.changePct)}${t.changePct}%</span></div>`;
+  document.getElementById('winlose').innerHTML =
+    `<div><h3>🟢 Top Ganadores</h3>${win.map((t,i)=>li(t,i,'pos')).join('')}</div>
+     <div><h3>🔴 Top Perdedores</h3>${lose.map((t,i)=>li(t,i,'neg')).join('')}</div>`;
+  const byRsi = ALL.slice().sort((a,b)=>b.rsi-a.rsi);
+  const ob=byRsi.slice(0,5), os=byRsi.slice(-5).reverse();
+  const lir=(t,i,p)=>`<div class="li"><span class="rk">${i+1}</span><span class="nm">${t.symbol}</span>
+    <span class="pill ${p}">${t.rsi}</span></div>`;
+  document.getElementById('rsiext').innerHTML =
+    `<div><h3>🟠 Sobrecomprados</h3>${ob.map((t,i)=>lir(t,i,'red')).join('')}</div>
+     <div><h3>🔵 Sobrevendidos</h3>${os.map((t,i)=>lir(t,i,'green')).join('')}</div>`;
+}
+
+/* ---------- compare ---------- */
+function renderCompare(){
+  const a=ALL.find(t=>t.symbol===document.getElementById('cmp-a').value);
+  const b=ALL.find(t=>t.symbol===document.getElementById('cmp-b').value);
+  if(!a||!b) return;
+  const rows=[
+    ['Precio', '$'+a.price, '$'+b.price],
+    ['Var día %', sign(a.changePct)+a.changePct+'%', sign(b.changePct)+b.changePct+'%'],
+    ['Warren Score', a.warrenScore, b.warrenScore],
+    ['RS Score', a.rsScore, b.rsScore],
+    ['RSI 14', a.rsi, b.rsi],
+    ['vs EMA200', sign(a.vsEma200)+a.vsEma200+'%', sign(b.vsEma200)+b.vsEma200+'%'],
+    ['vs SMA50', sign(a.vsSma50)+a.vsSma50+'%', sign(b.vsSma50)+b.vsSma50+'%'],
+    ['vs Máx 52W', sign(a.vsMax52w)+a.vsMax52w+'%', sign(b.vsMax52w)+b.vsMax52w+'%'],
+    ['vs Mín 52W', sign(a.vsMin52w)+a.vsMin52w+'%', sign(b.vsMin52w)+b.vsMin52w+'%'],
+    ['Vol Relativa', a.volRel+'x', b.volRel+'x'],
+    ['Sector', esc(a.sector), esc(b.sector)],
+    ['Market Cap', mcapTier(a.mktCap), mcapTier(b.mktCap)],
+  ];
+  const head=`<thead><tr><th>Métrica</th><th style="text-align:right">${a.symbol}</th><th style="text-align:right">${b.symbol}</th></tr></thead>`;
+  const body='<tbody>'+rows.map(([l,va,vb])=>`<tr>
+    <td style="text-align:left;color:var(--ink-dim)">${l}</td><td>${va}</td><td>${vb}</td></tr>`).join('')+'</tbody>';
+  document.getElementById('cmpTbl').innerHTML=head+body;
+}
+
+/* ---------- tabs ---------- */
+document.getElementById('tabs').addEventListener('click',e=>{
+  const tab=e.target.closest('.tab'); if(!tab) return;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('section.view').forEach(s=>s.classList.remove('on'));
+  tab.classList.add('on');
+  document.querySelector(`section.view[data-v="${tab.dataset.v}"]`).classList.add('on');
+  if(tab.dataset.v==='resurg') renderScatter();
+});
+window.addEventListener('resize',()=>{ if(document.querySelector('section[data-v=resurg].on')) renderScatter(); });
+
+function renderAll(){
+  renderStats(); renderScan(); renderWS(); renderSectors();
+  renderTrend(); renderVolBars(); renderBoard(); renderCompare();
+}
+load();
+</script>
+</body>
+</html>
