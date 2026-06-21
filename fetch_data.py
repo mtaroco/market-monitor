@@ -26,7 +26,9 @@ import os, sys, json, time, math, urllib.request, urllib.error
 from datetime import datetime, timezone
 
 # ---------------------------------------------------------------- config
-KEY = os.environ.get("FMP_API_KEY", "CtJXcTT2q3suyne9eEn4WVRLIEGwyPn3")
+KEY = os.environ.get("FMP_API_KEY")
+if not KEY:
+    raise SystemExit("Falta la API key. Definí la variable FMP_API_KEY (export FMP_API_KEY=... o GitHub Secret).")
 # API "stable" de FMP (la v3/legacy fue discontinuada para cuentas nuevas)
 STABLE = "https://financialmodelingprep.com/stable"
 CACHE_DIR = "data_cache"
