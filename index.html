@@ -139,12 +139,48 @@
   .tab.on{background:var(--panel);border-color:var(--line);color:var(--green)}
   .tab:hover{color:var(--ink)}
   section.view{display:none} section.view.on{display:block}
+
+  /* guía */
+  .guide{max-width:900px;line-height:1.6}
+  .guide-toc{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 24px}
+  .guide-toc a{font-size:12px;color:var(--green);border:1px solid var(--green-dim);
+    padding:6px 12px;border-radius:20px;text-decoration:none;transition:.15s}
+  .guide-toc a:hover{background:var(--green-glow)}
+  .guide .g-h{font-size:17px;color:var(--green);margin:32px 0 14px;
+    padding-bottom:8px;border-bottom:1px solid var(--line);scroll-margin-top:80px}
+  .guide .g-p{color:var(--ink);margin-bottom:14px;font-size:14px}
+  .guide .g-card{background:var(--panel2);border:1px solid var(--line);
+    border-left:3px solid var(--green-dim);border-radius:8px;padding:13px 16px;
+    margin-bottom:11px;font-size:13.5px;color:var(--ink-dim)}
+  .guide .g-card b{color:var(--ink)}
+  .guide .g-metric{background:var(--panel2);border:1px solid var(--line);
+    border-radius:10px;padding:16px 18px;margin-bottom:14px}
+  .guide .g-name{font-family:var(--mono);font-weight:700;font-size:15px;color:var(--ink);
+    margin-bottom:8px;display:flex;align-items:center;gap:10px}
+  .guide .g-range{font-size:11px;color:var(--green);border:1px solid var(--green-dim);
+    padding:2px 9px;border-radius:12px;font-weight:500}
+  .guide .g-metric p{font-size:13.5px;color:var(--ink-dim);margin-bottom:10px}
+  .guide .g-metric b{color:var(--ink)}
+  .guide .g-metric ul{margin:0;padding-left:18px}
+  .guide .g-metric li{font-size:13px;color:var(--ink-dim);margin-bottom:5px}
+  .guide .g-metric li b{color:var(--ink)}
+  .guide .g-note{font-size:12px!important;color:var(--ink-faint)!important;
+    font-style:italic;margin-top:8px!important;margin-bottom:0!important}
+  .guide .g-steps{padding-left:20px;margin-bottom:16px}
+  .guide .g-steps li{font-size:14px;color:var(--ink-dim);margin-bottom:9px}
+  .guide .g-steps b{color:var(--ink)}
+  .guide .g-example{background:var(--green-glow);border:1px solid var(--green-dim);
+    border-radius:10px;padding:15px 18px;font-size:13.5px;color:var(--ink);margin:16px 0}
+  .guide .g-example b{color:var(--green)}
+  .guide .g-warn{padding-left:20px;margin:0}
+  .guide .g-warn li{font-size:13.5px;color:var(--ink-dim);margin-bottom:9px}
+  .guide .g-warn b{color:var(--amber)}
 </style>
 </head>
 <body>
 <header>
   <div class="logo"><span class="accent">▌</span>Monitor<span class="accent"> de Mercado</span></div>
-  <div class="sub">Scanner técnico · ~340 tickers US</div>
+  <div class="sub" id="sub">Scanner técnico EOD</div>
   <div class="live"><span class="dot"></span>EOD</div>
   <div class="gen" id="gen">—</div>
 </header>
@@ -163,6 +199,7 @@
     <div class="tab" data-v="trend">Tendencia & Volumen</div>
     <div class="tab" data-v="board">Cartelera</div>
     <div class="tab" data-v="compare">Comparador</div>
+    <div class="tab" data-v="guide">📖 Guía</div>
   </div>
 
   <!-- VIEW: scanner + warren score -->
@@ -253,6 +290,152 @@
       <table class="tbl" id="cmpTbl" style="max-width:600px"></table>
     </div>
   </section>
+  <!-- VIEW: guía -->
+  <section class="view" data-v="guide">
+    <div class="panel guide">
+      <div class="phead"><h2>Guía de lectura</h2></div>
+      <div class="pdesc">Qué significa cada dato, cómo interpretarlo y cómo usar cada panel para decidir. Sin jerga innecesaria.</div>
+
+      <div class="guide-toc">
+        <a href="#g-conceptos">Conceptos base</a>
+        <a href="#g-metricas">Cada métrica</a>
+        <a href="#g-paneles">Cada panel</a>
+        <a href="#g-trade">Cómo decidir un trade</a>
+        <a href="#g-limites">Límites y advertencias</a>
+      </div>
+
+      <h3 id="g-conceptos" class="g-h">Conceptos base</h3>
+      <p class="g-p">Este monitor no te dice qué comprar. Te ayuda a <b>filtrar</b> cientos de posibilidades a un puñado que vale la pena mirar de cerca, y a <b>cronometrar</b> mejor (¿está la acción en zona de fuerza o de debilidad?). Todo lo que ves es <b>análisis técnico</b> sobre precio y volumen — no mira si la empresa es buena, mira cómo se está comportando su acción.</p>
+      <p class="g-p">Dos ideas que se repiten en todo el dashboard:</p>
+      <div class="g-card">
+        <b>Fuerza relativa (RS):</b> ¿la acción sube más o menos que el mercado (SPY)? Una acción puede subir 2% y aún así ser "débil" si el mercado subió 4%. La fuerza relativa mide eso: quién le está ganando al índice. <b>Comprás fuerza, no debilidad.</b>
+      </div>
+      <div class="g-card">
+        <b>Volumen = convicción:</b> el precio te dice qué pasó; el volumen te dice cuánta gente estaba detrás. Un movimiento con volumen alto es más confiable que el mismo movimiento con volumen flojo. Volumen que se seca (baja) durante una consolidación suele preceder un movimiento fuerte.
+      </div>
+
+      <h3 id="g-metricas" class="g-h">Cada métrica, una por una</h3>
+
+      <div class="g-metric">
+        <div class="g-name">RS Score <span class="g-range">0 – 100</span></div>
+        <p>Percentil de fuerza relativa vs SPY, combinando varios horizontes (1, 3, 6, 12 meses). <b>80 significa que la acción le gana al 80% del universo.</b> Es la métrica más importante del tablero.</p>
+        <ul>
+          <li><b>&gt; 80:</b> líder. Va mejor que casi todo el mercado.</li>
+          <li><b>60 – 80:</b> fuerte. En buena posición.</li>
+          <li><b>40 – 60:</b> neutro. Sigue al mercado, sin destacar.</li>
+          <li><b>&lt; 40:</b> rezagado. Le está costando. Cuidado con "comprar barato" acá: lo barato puede seguir bajando.</li>
+        </ul>
+      </div>
+
+      <div class="g-metric">
+        <div class="g-name">Warren Score <span class="g-range">0 – 100</span></div>
+        <p>Un puntaje compuesto que junta varias señales en un solo número: RS Score + si el precio está sobre sus medias móviles + si está lejos de su piso de 52 semanas + si la volatilidad está comprimida. Es un <b>resumen de "calidad técnica"</b>.</p>
+        <ul>
+          <li><b>&gt; 85:</b> setup técnico muy sólido. Cumple casi todos los criterios.</li>
+          <li><b>70 – 85:</b> buen setup, mirar de cerca.</li>
+          <li><b>&lt; 70:</b> le faltan piezas. No descarta, pero exige más análisis.</li>
+        </ul>
+        <p class="g-note">Es <b>tu</b> fórmula, reconstruida del dashboard original. Las ponderaciones se pueden ajustar en el código si querés darle más peso a un criterio.</p>
+      </div>
+
+      <div class="g-metric">
+        <div class="g-name">RSI 14 <span class="g-range">0 – 100</span></div>
+        <p>Mide si la acción está "sobrecomprada" (subió mucho, rápido) o "sobrevendida" (bajó mucho, rápido) en las últimas 14 ruedas.</p>
+        <ul>
+          <li><b>&gt; 70:</b> sobrecomprada. No es señal de venta automática — las acciones fuertes viven sobre 70 — pero ojo con entrar justo acá.</li>
+          <li><b>30 – 70:</b> zona normal.</li>
+          <li><b>&lt; 30:</b> sobrevendida. Puede haber rebote, pero también puede ser una caída que sigue.</li>
+        </ul>
+      </div>
+
+      <div class="g-metric">
+        <div class="g-name">vs EMA200 / vs SMA50 <span class="g-range">%</span></div>
+        <p>Qué tan lejos (en %) está el precio de sus promedios móviles de 200 y 50 ruedas. Las medias móviles son la "línea de tendencia" del mercado.</p>
+        <ul>
+          <li><b>Precio sobre EMA200 (valor +):</b> tendencia de fondo alcista. Es el filtro #1 de cualquier compra.</li>
+          <li><b>Precio sobre SMA50 (valor +):</b> tendencia de mediano plazo alcista.</li>
+          <li><b>Por debajo (valor –):</b> tendencia en contra. Operar largos acá es nadar contracorriente.</li>
+        </ul>
+      </div>
+
+      <div class="g-metric">
+        <div class="g-name">vs Máx / Mín 52W <span class="g-range">%</span></div>
+        <p>Distancia al máximo y mínimo de las últimas 52 semanas. Te ubica en el rango anual.</p>
+        <ul>
+          <li><b>vs Mín 52W alto (ej. +40%):</b> la acción ya se despegó del piso — señal de fuerza.</li>
+          <li><b>vs Máx 52W cerca de 0 (ej. –5%):</b> está cerca de máximos. Romper máximos con volumen suele ser alcista.</li>
+        </ul>
+      </div>
+
+      <div class="g-metric">
+        <div class="g-name">Vol Relativa <span class="g-range">múltiplo (x)</span></div>
+        <p>Volumen de hoy vs el promedio de las últimas 5 ruedas. <b>1.0x = volumen normal.</b></p>
+        <ul>
+          <li><b>&gt; 1.5x:</b> volumen inusual. Algo está pasando — noticia, ruptura, capitulación. Bandera ámbar en el tablero.</li>
+          <li><b>&lt; 1.0x:</b> volumen flojo. Movimientos poco confiables.</li>
+        </ul>
+      </div>
+
+      <div class="g-metric">
+        <div class="g-name">Volatilidad relativa (Vol&lt;0.8) <span class="g-range">múltiplo</span></div>
+        <p>Compara la volatilidad reciente (5 ruedas) con la del último año. <b>Menor a 1 = la acción está "quieta", comprimida.</b> La compresión de volatilidad muchas veces precede a movimientos grandes (como un resorte que se carga).</p>
+        <ul>
+          <li><b>&lt; 0.8:</b> comprimida. Setup de potencial ruptura. Es uno de los criterios del Warren Score.</li>
+        </ul>
+      </div>
+
+      <h3 id="g-paneles" class="g-h">Cada panel, y para qué sirve</h3>
+
+      <div class="g-card">
+        <b>📊 Tarjetas de arriba (stat cards):</b> el pulso del mercado de un vistazo. Cuántas acciones están sobre EMA200 (¿mercado sano o débil?), cuántas con RS alto, cuántas con volumen inusual hoy. Si muy pocas están sobre EMA200, el mercado general está flojo — cuidado con comprar.
+      </div>
+      <div class="g-card">
+        <b>Scanner de calidad:</b> tu tabla principal. Filtrá por RS mínimo, volumen, sector. <b>Uso típico:</b> poné RS mín en 70, activá "solo candidatos calidad", y te quedan las acciones fuertes, en tendencia, con volatilidad sana. Esa es tu lista de trabajo.
+      </div>
+      <div class="g-card">
+        <b>Warren Score:</b> el ranking de mejor calidad técnica. Los checks verdes/rojos te muestran <i>qué</i> criterio cumple cada una. Una acción con score 89 y todos los checks verdes es un setup de manual.
+      </div>
+      <div class="g-card">
+        <b>Sectores (semáforo):</b> qué sectores están liderando. <b>Clave:</b> las mejores acciones suelen estar en los mejores sectores. Si Tecnología tiene RS 100 y Utilities RS 40, andá a buscar ideas en Tecnología. El borde ámbar marca volumen inusual.
+      </div>
+      <div class="g-card">
+        <b>Mapa de Re-surgimiento:</b> dispersión de RS actual vs RS previo. Las que están <b>arriba de la diagonal están ganando fuerza</b> (verde); abajo, perdiéndola (rojo). El tamaño de la burbuja es el volumen. Buscás acciones subiendo de cuadrante con volumen — fuerza que recién empieza.
+      </div>
+      <div class="g-card">
+        <b>Tendencia & Volumen:</b> las de mayor RS con su mini-gráfico de precio. Vistazo rápido a la forma de la tendencia. Las barras de volumen inusual te dicen dónde está la acción hoy.
+      </div>
+      <div class="g-card">
+        <b>Cartelera:</b> ganadores y perdedores del día, y extremos de RSI (sobrecompradas / sobrevendidas). Útil para reaccionar a lo que se movió fuerte hoy.
+      </div>
+      <div class="g-card">
+        <b>Comparador:</b> dos acciones lado a lado, métrica por métrica. Para cuando dudás entre dos ideas y querés ver cuál tiene mejor setup.
+      </div>
+
+      <h3 id="g-trade" class="g-h">Cómo usar todo esto para decidir un trade</h3>
+      <p class="g-p">Un flujo de trabajo razonable, de lo general a lo particular:</p>
+      <ol class="g-steps">
+        <li><b>¿Cómo está el mercado?</b> Mirá las stat cards. Si la mayoría está sobre EMA200, hay viento a favor. Si no, sé más selectivo o esperá.</li>
+        <li><b>¿Qué sectores lideran?</b> Andá al semáforo de sectores. Enfocá tu búsqueda en los 2-3 sectores con mejor RS.</li>
+        <li><b>¿Qué acciones?</b> En el Scanner, filtrá RS &gt; 70 + candidatos calidad. Cruzá con los sectores líderes.</li>
+        <li><b>¿Buen setup técnico?</b> Confirmá en Warren Score: ¿está sobre sus medias? ¿lejos del piso? ¿volatilidad comprimida?</li>
+        <li><b>¿Buen momento?</b> Mirá RSI (¿no sobrecomprada?), el mapa de re-surgimiento (¿ganando fuerza?), y el volumen (¿hay convicción?).</li>
+        <li><b>Decisión y disciplina:</b> entrada escalonada, stop definido. El tablero te da el "qué" y el "cuándo aproximado", no reemplaza tu gestión de riesgo.</li>
+      </ol>
+      <div class="g-example">
+        <b>Ejemplo práctico:</b> Buscás una idea. El mercado está sano (180+ sobre EMA200). Tecnología lidera (RS 95). En el Scanner filtrás RS&gt;70 y aparece una tech con Warren Score 87, precio +30% sobre EMA200, RSI 62 (no sobrecomprada), volatilidad 0.7 (comprimida) y en el mapa viene subiendo de cuadrante con volumen 1.6x. <b>Eso es una confluencia de señales:</b> tendencia + fuerza + timing + convicción. No es garantía — es una idea de alta probabilidad que merece tu análisis fundamental y un plan de entrada/salida.
+      </div>
+
+      <h3 id="g-limites" class="g-h">Límites y advertencias honestas</h3>
+      <ul class="g-warn">
+        <li><b>Es técnico, no fundamental.</b> No mira ganancias, deuda, ni valuación. Una acción puede tener Warren Score 90 y ser una empresa cara o frágil. Cruzá siempre con tu research.</li>
+        <li><b>Datos EOD (fin de día).</b> No es tiempo real. Sirve para decisiones de días/semanas, no para day-trading.</li>
+        <li><b>El RS Score es relativo a TU universo.</b> Con 39 tickers, el percentil se calcula sobre esos 39. No es el percentil del mercado entero.</li>
+        <li><b>Pasado ≠ futuro.</b> Fuerza relativa alta describe lo que ya pasó. Es una probabilidad a favor, no una certeza.</li>
+        <li><b>El Warren Score es una receta ajustable.</b> Si sentís que sobrevalora o subestima algo, se cambia. Es tu herramienta.</li>
+      </ul>
+    </div>
+  </section>
+
 </div>
 
 <script>
@@ -277,6 +460,7 @@ async function load(){
   }
   ALL = DATA.tickers;
   document.getElementById('gen').textContent = 'Actualizado: '+new Date(DATA.generated).toLocaleString('es');
+  document.getElementById('sub').textContent = `Scanner técnico EOD · ${ALL.length} tickers`;
   if(DATA.mock){
     document.getElementById('mockBanner').innerHTML =
       '<div class="mock-banner">⚠ Datos de DEMOSTRACIÓN (sintéticos). Corré <b>python3 fetch_data.py</b> con tu API key para datos reales.</div>';

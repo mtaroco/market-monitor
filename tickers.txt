@@ -1,0 +1,54 @@
+# ─────────────────────────────────────────────────────────────
+# LISTA DE TICKERS DEL MONITOR
+# ─────────────────────────────────────────────────────────────
+# Editá esta lista libremente: un ticker por línea.
+#   • Agregar:  escribí el símbolo en una línea nueva
+#   • Quitar:   borrá la línea (o ponele # adelante para desactivarlo)
+# Las líneas que empiezan con # son comentarios (se ignoran).
+# Los espacios y líneas vacías no molestan.
+#
+# IMPORTANTE: SPY debe quedar siempre (es el benchmark del RS Score).
+# ─────────────────────────────────────────────────────────────
+
+# Referencia / índices
+SPY
+QQQ
+
+# Cartera / watchlist
+NBIS
+ZETA
+SOFI
+PYPL
+CAT
+KO
+AMZN
+OKTA
+MSFT
+GRAB
+TSLA
+UBER
+ABNB
+AMD
+PGY
+NU
+IBKR
+NVDA
+HOOD
+DLO
+GOOGL
+RIVN
+AAPL
+NVO
+BE
+UNH
+COCO
+HROW
+SEZL
+NOK
+MU
+ASML
+MRVL
+SPCX
+SNDK
+INTC
+NOW
