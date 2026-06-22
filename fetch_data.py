@@ -26,9 +26,7 @@ import os, sys, json, time, math, urllib.request, urllib.error
 from datetime import datetime, timezone
 
 # ---------------------------------------------------------------- config
-KEY = os.environ.get("FMP_API_KEY")
-if not KEY:
-    raise SystemExit("Falta la API key. Definí la variable FMP_API_KEY (export FMP_API_KEY=... o GitHub Secret).")
+KEY = os.environ.get("FMP_API_KEY", "CtJXcTT2q3suyne9eEn4WVRLIEGwyPn3")
 # API "stable" de FMP (la v3/legacy fue discontinuada para cuentas nuevas)
 STABLE = "https://financialmodelingprep.com/stable"
 CACHE_DIR = "data_cache"
@@ -269,10 +267,18 @@ def build(mock=False, full=False):
     print(f"[1/4] Benchmark {BENCHMARK}…")
     bench_bars = load_cache(BENCHMARK) if not full else None
     if not bench_bars:
-        bench_bars = fetch_history(BENCHMARK)
-        if bench_bars: save_cache(BENCHMARK, bench_bars)
+        try:
+            bench_bars = fetch_history(BENCHMARK)
+            if bench_bars: save_cache(BENCHMARK, bench_bars)
+        except QuotaError as e:
+            print(f"  ! {e}")
+            bench_bars = load_cache(BENCHMARK)  # último intento desde caché
     if not bench_bars:
-        print("  ✗ No pude traer el benchmark. Abortando."); sys.exit(1)
+        print("  ✗ No hay datos del benchmark (cuota agotada y sin caché).")
+        print("    El benchmark SPY es necesario para calcular el RS Score.")
+        print("    Esperá al reset diario de la cuota FMP y volvé a correr.")
+        print("    Si ya tenías data.json de antes, sigue intacto (no se sobreescribió).")
+        sys.exit(0)   # salida limpia, no error fatal — no rompe el Action
     bench_closes = [b["close"] for b in bench_bars]
 
     print("[2/4] Perfiles (sector + market cap) — se cachean 1 sola vez…")
